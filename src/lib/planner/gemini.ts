@@ -36,6 +36,8 @@ export async function geminiPlan(s: Session): Promise<{ plans: Plan[]; summary: 
   let result: { plans: Plan[]; summary: string } | null = null;
 
   const contents: Content[] = [{ role: "user", parts: [{ text: planPrompt(s) }] }];
+  // One budget for the whole run, so the rules planner still has time to finish.
+  const budget = AbortSignal.timeout(80_000);
 
   const thinking = s.step("Agent is reading the profile and history", `${GEMINI_MODEL} · ${s.loves.length} loves · ${s.req.outings.filter((o) => o.status === "logged").length} logged outings`);
   let thinkingOpen = true;
@@ -48,7 +50,7 @@ export async function geminiPlan(s: Session): Promise<{ plans: Plan[]; summary: 
         systemInstruction: SYSTEM,
         tools: [{ functionDeclarations: DECLARATIONS }],
         toolConfig: { functionCallingConfig: { mode: FunctionCallingConfigMode.AUTO } },
-        abortSignal: AbortSignal.timeout(90_000),
+        abortSignal: budget,
       },
     });
     if (thinkingOpen) {

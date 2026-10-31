@@ -23,5 +23,6 @@ export function agentError(e: unknown): string {
     if (e.status === 401 || e.status === 403 || /API key/i.test(e.message)) return "Gemini API key was rejected";
     return `Gemini error ${e.status}`;
   }
+  if (e instanceof Error && (e.name === "TimeoutError" || e.name === "AbortError")) return "The agent took too long";
   return e instanceof Error ? e.message : "Agent failed";
 }

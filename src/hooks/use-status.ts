@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type { AgentName } from "@/lib/types";
 
 export interface Status {
   qloo: "live" | "sample";
-  agent: "claude" | "rules";
+  agent: AgentName;
   model: string | null;
 }
 

@@ -1,6 +1,7 @@
 import { z } from "zod";
-import Anthropic from "@anthropic-ai/sdk";
-import { agentConfigured, agentPlan } from "@/lib/planner/agent";
+import { activeAgent, agentError } from "@/lib/planner/active";
+import { agentPlan } from "@/lib/planner/agent";
+import { geminiPlan } from "@/lib/planner/gemini";
 import { providerFor } from "@/lib/planner/provider";
 import { gatherDefault, rulesPlan } from "@/lib/planner/rules";
 import { Session, type PlanRequest } from "@/lib/planner/session";
@@ -34,28 +35,18 @@ export async function POST(req: Request) {
     async start(controller) {
       const emit = (e: PlanEvent) => controller.enqueue(encoder.encode(JSON.stringify(e) + "\n"));
       const provider = providerFor(body.person.loves);
-      const useAgent = agentConfigured();
-      emit({ type: "mode", mode: { qloo: provider.mode, agent: useAgent ? "claude" : "rules" } });
+      const { agent } = activeAgent();
+      emit({ type: "mode", mode: { qloo: provider.mode, agent } });
       const session = new Session(body, provider, emit);
 
       try {
         await session.resolveLoves();
         let result = null;
-        if (useAgent) {
+        if (agent !== "rules") {
           try {
-            result = await agentPlan(session);
+            result = agent === "claude" ? await agentPlan(session) : await geminiPlan(session);
           } catch (e) {
-            const message =
-              e instanceof Anthropic.AuthenticationError
-                ? "Claude API key was rejected"
-                : e instanceof Anthropic.RateLimitError
-                  ? "Claude is rate limited right now"
-                  : e instanceof Anthropic.APIError
-                    ? `Claude error ${e.status ?? ""}`.trim()
-                    : e instanceof Error
-                      ? e.message
-                      : "Agent failed";
-            emit({ type: "notice", message: `${message}. The rules planner finished this plan.` });
+            emit({ type: "notice", message: `${agentError(e)}. The rules planner finished this plan.` });
           }
         }
         if (!result) {

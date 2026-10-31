@@ -63,11 +63,11 @@ function SettingsView() {
             title="Planning agent"
             description={
               <>
-                Claude reads the profile and history, calls Qloo, and writes the plans. Set <code className="rounded bg-muted px-1 text-xs">ANTHROPIC_API_KEY</code>. Without it, a rules planner uses the same searches and ranking.
+                Claude (or Gemini) reads the profile and history, calls Qloo, and writes the plans. Set <code className="rounded bg-muted px-1 text-xs">ANTHROPIC_API_KEY</code> or <code className="rounded bg-muted px-1 text-xs">GEMINI_API_KEY</code>. Without either, a rules planner uses the same searches and ranking.
               </>
             }
           >
-            <Integration ok={status ? status.agent === "claude" : undefined} okLabel={status?.model ?? "Connected"} offLabel="Rules planner" />
+            <Integration ok={status ? status.agent !== "rules" : undefined} okLabel={status?.model ?? "Connected"} offLabel="Rules planner" />
           </Row>
         </div>
       </section>
@@ -82,8 +82,8 @@ function SettingsView() {
             <span className="text-muted-foreground">Entity and tag IDs for the person&apos;s loves, a map point and radius, the weekday and a price ceiling. Never names or support details.</span>
           </li>
           <li className="flex gap-3">
-            <span className="w-16 shrink-0 font-medium">Claude</span>
-            <span className="text-muted-foreground">The profile with the name removed, pronouns, support notes and recent outing logs, to write plans and progress notes.</span>
+            <span className="w-16 shrink-0 font-medium">Agent</span>
+            <span className="text-muted-foreground">Claude or Gemini, whichever is configured, gets the profile with the name removed, pronouns, support notes and recent outing logs, to write plans and progress notes.</span>
           </li>
           <li className="flex gap-3">
             <span className="w-16 shrink-0 font-medium">Storage</span>
@@ -115,7 +115,7 @@ function SettingsView() {
           </Row>
           <Row title="About" description="Throughline: community outings that fit the person, learned from how each one went, kept when staff change.">
             <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <Bot className="size-3.5" /> Qloo × Claude
+              <Bot className="size-3.5" /> Qloo × {status?.agent === "gemini" ? "Gemini" : "Claude"}
             </span>
           </Row>
         </div>

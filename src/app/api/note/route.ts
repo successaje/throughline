@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
-import { agentConfigured } from "@/lib/planner/agent";
+import { activeAgent, agentError } from "@/lib/planner/active";
+import { GEMINI_MODEL, geminiClient } from "@/lib/planner/gemini";
 
 export const maxDuration = 60;
 
@@ -27,10 +28,21 @@ const SYSTEM = `You draft monthly progress notes for adults in Medicaid home- an
 export async function POST(req: Request) {
   const parsed = Body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return Response.json({ error: "Invalid request" }, { status: 400 });
-  if (!agentConfigured()) return Response.json({ mode: "rules" });
+  const { agent } = activeAgent();
+  if (agent === "rules") return Response.json({ mode: "rules" });
 
-  const client = new Anthropic({ timeout: 45_000, maxRetries: 2 });
   try {
+    if (agent === "gemini") {
+      const response = await geminiClient().models.generateContent({
+        model: GEMINI_MODEL,
+        contents: JSON.stringify(parsed.data),
+        config: { systemInstruction: SYSTEM, abortSignal: AbortSignal.timeout(45_000) },
+      });
+      const text = response.text?.trim();
+      return Response.json(text ? { mode: "gemini", text } : { mode: "rules" });
+    }
+
+    const client = new Anthropic({ timeout: 45_000, maxRetries: 2 });
     const response = await client.beta.messages.create({
       model: process.env.ANTHROPIC_MODEL ?? "claude-opus-5-5",
       max_tokens: 4000,
@@ -44,7 +56,6 @@ export async function POST(req: Request) {
     const text = response.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("\n").trim();
     return Response.json({ mode: "claude", text });
   } catch (e) {
-    const message = e instanceof Anthropic.APIError ? `Claude error ${e.status ?? ""}`.trim() : "Note drafting failed";
-    return Response.json({ mode: "rules", error: message });
+    return Response.json({ mode: "rules", error: agentError(e) });
   }
 }

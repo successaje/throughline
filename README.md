@@ -4,7 +4,7 @@
 
 Throughline is for direct support professionals (DSPs) who support adults with intellectual and developmental disabilities in Medicaid home- and community-based services. Qloo suggests real local places that match what someone loves. Staff log a 10-second reaction after each outing. Those reactions re-rank every future suggestion, and the whole record stays with the person when staff leave.
 
-Built for the [Qloo Agentic Hackathon](https://qloo.devpost.com/).
+Built for the [Qloo Agentic Hackathon](https://qloo.devpost.com/). **Live demo:** https://throughline-eight-sigma.vercel.app
 
 ## The problem
 
@@ -35,7 +35,7 @@ Qloo supplies the taste prior, which no care record has. Throughline adds what Q
 
 ## The agent
 
-The planner is a tool-using agent on Claude (`claude-opus-5-5` by default). The code is in [src/lib/planner/agent.ts](src/lib/planner/agent.ts).
+The planner is a tool-using agent on Claude (`claude-opus-5-5` by default). When only a Gemini key is set, the same agent runs on Gemini (`gemini-flash-latest` by default), with the same prompt, tools and limits. The code is in [src/lib/planner/agent.ts](src/lib/planner/agent.ts) and [src/lib/planner/gemini.ts](src/lib/planner/gemini.ts).
 
 **Tools:**
 - `search_places`: Qloo places, re-scored by the person's own model.
@@ -50,14 +50,15 @@ The planner is a tool-using agent on Claude (`claude-opus-5-5` by default). The 
 The staff member sees each step live, including the exact Qloo request.
 
 The app degrades gracefully, and the UI always labels which mode is running:
-- **No `ANTHROPIC_API_KEY`:** a rules planner runs the same Qloo searches and ranking model.
+- **No `ANTHROPIC_API_KEY`:** Gemini runs the agent if `GEMINI_API_KEY` is set.
+- **No Claude or Gemini key:** a rules planner runs the same Qloo searches and ranking model.
 - **No `QLOO_API_KEY`:** a labeled sample mode uses fictional places with simulated affinity.
 
 ## Run it
 
 ```bash
 npm install
-cp .env.example .env.local   # add QLOO_API_KEY and ANTHROPIC_API_KEY
+cp .env.example .env.local   # add QLOO_API_KEY, plus ANTHROPIC_API_KEY or GEMINI_API_KEY
 npm run dev
 ```
 
@@ -71,20 +72,20 @@ Open http://localhost:3000. Four fictional people and six weeks of labeled sampl
 
 ## Deploy
 
-Deploy to Vercel (or any Node host). Set `QLOO_API_KEY`, `QLOO_API_URL` and `ANTHROPIC_API_KEY` as environment variables. No database is required for the demo.
+Deploy to Vercel (or any Node host). Set `QLOO_API_KEY`, `QLOO_API_URL`, and `ANTHROPIC_API_KEY` or `GEMINI_API_KEY` as environment variables. No database is required for the demo.
 
 ## Stack
 
 - **Framework:** Next.js 16 (App Router, Cache Components), React 19, TypeScript.
 - **UI:** Tailwind CSS v4 and shadcn/ui (Radix), Motion, Zustand.
-- **AI:** Anthropic TypeScript SDK.
+- **AI:** Anthropic TypeScript SDK, Google Gen AI SDK.
 
 **Project layout:**
 
 ```
 src/lib/qloo.ts             Qloo client and response normalization
 src/lib/model.ts            per-person preference model (Beta posteriors, Thompson sampling)
-src/lib/planner/            agent, rules planner, live/sample providers, run session
+src/lib/planner/            Claude and Gemini agents, rules planner, live/sample providers, run session
 src/app/api/plan/route.ts   streaming plan endpoint (NDJSON events)
 src/app/(app)/              Today, People, record, planner, handoff card, settings
 ```

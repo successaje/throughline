@@ -8,11 +8,11 @@ import { TAG_LABEL } from "@/components/reaction";
 import { Button } from "@/components/ui/button";
 import { REACTION_LABEL, formatDate, pronoun } from "@/lib/format";
 import { historyByPlace, insights, learn } from "@/lib/model";
-import type { Outing, Person } from "@/lib/types";
+import { AGENT_LABEL, type AgentName, type Outing, type Person } from "@/lib/types";
 
 const DAYS = 30;
 
-/** Template note used when no Claude key is configured. Cites logs the same way. */
+/** Template note used when no agent key is configured. Cites logs the same way. */
 function templateNote(person: Person, logs: (Outing & { n: number })[]) {
   const pr = pronoun(person);
   const lit = logs.filter((o) => o.reaction === "lit_up");
@@ -42,7 +42,7 @@ function recentLogs(outings: Outing[], now: number): Numbered[] {
 
 /** Mounted only while the dialog is open, so each open drafts afresh. */
 function NoteBody({ person, logs }: { person: Person; logs: Numbered[] }) {
-  const [state, setState] = useState<{ loading: boolean; text: string; mode: "claude" | "rules" | null }>({ loading: true, text: "", mode: null });
+  const [state, setState] = useState<{ loading: boolean; text: string; mode: AgentName | null }>({ loading: true, text: "", mode: null });
 
   useEffect(() => {
     let alive = true;
@@ -56,9 +56,9 @@ function NoteBody({ person, logs }: { person: Person; logs: Numbered[] }) {
       }),
     })
       .then((r) => r.json())
-      .then((d: { mode: "claude" | "rules"; text?: string }) => {
+      .then((d: { mode: AgentName; text?: string }) => {
         if (!alive) return;
-        if (d.mode === "claude" && d.text) setState({ loading: false, text: d.text.replaceAll("{{name}}", person.firstName), mode: "claude" });
+        if (d.mode !== "rules" && d.text) setState({ loading: false, text: d.text.replaceAll("{{name}}", person.firstName), mode: d.mode });
         else fallback();
       })
       .catch(fallback);
@@ -81,8 +81,8 @@ function NoteBody({ person, logs }: { person: Person; logs: Numbered[] }) {
       </div>
       <div className="flex items-center justify-between gap-2">
         <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          {mode === "claude" && <Sparkles className="size-3.5" />}
-          {mode === "claude" ? "Drafted by Claude from the logs" : mode === "rules" ? "Template draft. Add a Claude key for a written draft." : ""}
+          {mode && mode !== "rules" && <Sparkles className="size-3.5" />}
+          {mode === "rules" ? "Template draft. Add a Claude or Gemini key for a written draft." : mode ? `Drafted by ${AGENT_LABEL[mode]} from the logs` : ""}
         </span>
         <Button
           size="sm"

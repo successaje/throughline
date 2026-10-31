@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { AlertCircle, Bot, Check, ChevronRight, Loader2, Workflow } from "lucide-react";
-import type { AgentStep, RunMode } from "@/lib/types";
+import { AGENT_LABEL, type AgentStep, type RunMode } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 function StepIcon({ status }: { status: AgentStep["status"] }) {
@@ -63,11 +63,11 @@ export function AgentTrace({ steps, mode, running }: { steps: AgentStep[]; mode?
     <div className="rounded-xl border bg-card p-4">
       <div className="mb-3 flex items-center justify-between gap-2">
         <p className="flex items-center gap-2 text-sm font-semibold">
-          {mode?.agent === "claude" ? <Bot className="size-4 text-primary" /> : <Workflow className="size-4 text-primary" />}
-          {mode?.agent === "claude" ? "Agent run" : "Planner run"}
+          {mode && mode.agent !== "rules" ? <Bot className="size-4 text-primary" /> : <Workflow className="size-4 text-primary" />}
+          {mode && mode.agent !== "rules" ? "Agent run" : "Planner run"}
         </p>
         <span className="text-xs text-muted-foreground">
-          {mode ? `${mode.qloo === "live" ? "Live Qloo" : "Sample data"} · ${mode.agent === "claude" ? "Claude agent" : "Rules planner"}` : running ? "Starting" : ""}
+          {mode ? `${mode.qloo === "live" ? "Live Qloo" : "Sample data"} · ${mode.agent === "rules" ? "Rules planner" : `${AGENT_LABEL[mode.agent]} agent`}` : running ? "Starting" : ""}
         </span>
       </div>
       <ol className="space-y-3.5 before:absolute">

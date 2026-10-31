@@ -52,7 +52,7 @@ export function DataModeChip({ className }: { className?: string }) {
     >
       <span className={cn("size-1.5 rounded-full", live ? "bg-primary" : "bg-lit")} />
       {live ? "Live Qloo data" : "Sample data"}
-      {status.agent === "claude" && <Sparkles className="size-3" />}
+      {status.agent !== "rules" && <Sparkles className="size-3" />}
     </Link>
   );
 }

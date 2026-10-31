@@ -169,9 +169,13 @@ export interface AgentStep {
   resultCount?: number;
 }
 
+export type AgentName = "claude" | "gemini" | "rules";
+
+export const AGENT_LABEL: Record<AgentName, string> = { claude: "Claude", gemini: "Gemini", rules: "Rules" };
+
 export interface RunMode {
   qloo: "live" | "sample";
-  agent: "claude" | "rules";
+  agent: AgentName;
 }
 
 export type PlanEvent =

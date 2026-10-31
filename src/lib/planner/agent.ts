@@ -15,11 +15,11 @@ import type { Session } from "./session";
 
 export const agentConfigured = () => Boolean(process.env.ANTHROPIC_API_KEY);
 
-const MODEL = process.env.ANTHROPIC_MODEL ?? "claude-opus-5-5";
+export const MODEL = process.env.ANTHROPIC_MODEL ?? "claude-opus-5-5";
 const EFFORT = (process.env.ANTHROPIC_EFFORT ?? "medium") as "low" | "medium" | "high";
-const MAX_TURNS = 8;
+export const MAX_TURNS = 8;
 
-const SYSTEM = `You plan community outings for an adult with an intellectual or developmental disability, working for their direct support professional (DSP). The DSP is often new and has never met the person. Your job: turn what the person is known to love, and what their logged outings show, into two or three concrete options for one shift.
+export const SYSTEM = `You plan community outings for an adult with an intellectual or developmental disability, working for their direct support professional (DSP). The DSP is often new and has never met the person. Your job: turn what the person is known to love, and what their logged outings show, into two or three concrete options for one shift.
 
 How to work:
 - Use search_places to get real places from Qloo. The area, opening day, price ceiling and places already marked "not for them" are enforced for you. Run one to three searches: usually one with all their loves, plus one focused search if a love deserves its own (for example a single strong interest).
@@ -37,7 +37,7 @@ What good plans look like:
 
 const KIND = ["regular", "new", "at_home"] as const satisfies readonly PlanKind[];
 
-const TOOLS: Anthropic.Beta.BetaTool[] = [
+export const TOOLS: Anthropic.Beta.BetaTool[] = [
   {
     name: "search_places",
     description:
@@ -179,9 +179,9 @@ function compactCandidates(s: Session, ids: Set<string>) {
     }));
 }
 
-type ToolInput = Record<string, unknown>;
+export type ToolInput = Record<string, unknown>;
 
-async function runTool(s: Session, name: string, input: ToolInput, submit: (p: { summary: string; plans: Plan[] }) => void): Promise<string> {
+export async function runTool(s: Session, name: string, input: ToolInput, submit: (p: { summary: string; plans: Plan[] }) => void): Promise<string> {
   switch (name) {
     case "search_places": {
       const found = await s.searchPlaces(
@@ -233,18 +233,18 @@ async function runTool(s: Session, name: string, input: ToolInput, submit: (p: {
   }
 }
 
+/** The opening message: the shift request and the scrubbed profile. */
+export function planPrompt(s: Session) {
+  const pr = pronoun(s.person);
+  return `Plan this shift. Person profile (${pr.subj}/${pr.obj}):\n${JSON.stringify(brief(s), null, 1)}`;
+}
+
 /** Run the agent loop. Returns null if the agent could not produce plans. */
 export async function agentPlan(s: Session): Promise<{ plans: Plan[]; summary: string } | null> {
   const client = new Anthropic({ timeout: 90_000, maxRetries: 2 });
-  const pr = pronoun(s.person);
   let result: { plans: Plan[]; summary: string } | null = null;
 
-  const messages: Anthropic.Beta.BetaMessageParam[] = [
-    {
-      role: "user",
-      content: `Plan this shift. Person profile (${pr.subj}/${pr.obj}):\n${JSON.stringify(brief(s), null, 1)}`,
-    },
-  ];
+  const messages: Anthropic.Beta.BetaMessageParam[] = [{ role: "user", content: planPrompt(s) }];
 
   const thinking = s.step("Agent is reading the profile and history", `${MODEL} · ${s.loves.length} loves · ${s.req.outings.filter((o) => o.status === "logged").length} logged outings`);
   let thinkingOpen = true;
